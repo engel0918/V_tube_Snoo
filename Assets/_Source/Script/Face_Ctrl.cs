@@ -1,10 +1,15 @@
-﻿using System.Collections;
+﻿using NUnit.Framework;
+using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class Face_Ctrl : MonoBehaviour
 {
+    SaveData data;
+    UI_Comp ui_comp;
+
     [Header("Sprite Renderers")]
     public SpriteRenderer eyeRenderer;
     public SpriteRenderer mouthRenderer;
@@ -22,13 +27,11 @@ public class Face_Ctrl : MonoBehaviour
     public float blinkDuration = 0.15f;
 
     [Header("Mic Settings")]
-    public string deviceName;
-
-    [SerializeField] TMP_InputField Inf_mic_sense;
+    public List<string> mic_List;
+    public string sel_mic;
 
     public float micSensitivity = 80f;   // 감도 (낮을수록 둔감)
 
-    [SerializeField] TMP_InputField Inf_threshold;
     public float threshold = 0.15f;      // 입 열릴 기준 볼륨 (0.1~0.3 추천)
     public int minFramesToOpen = 3;      // 연속된 프레임 중 커야 입 열림 (소음 무시용)
 
@@ -41,8 +44,22 @@ public class Face_Ctrl : MonoBehaviour
 
     private int loudCount = 0;           // 연속된 큰 소리 카운터
 
+
     void Start()
     {
+        // 데이터 받아오기
+        data = GetComponent<SaveData>();
+        ui_comp = GetComponent<UI_Comp>();
+
+
+        threshold = data.mic_minsize;
+        ui_comp.Inf_threshold.text = data.mic_minsize.ToString();
+
+        micSensitivity = data.mic_Sense;
+        ui_comp.Inf_mic_sense.text = data.mic_Sense.ToString();
+
+        //--------------------------------------------------------------------------------
+
         // 눈 초기화
         if (eyeRenderer != null)
             eyeRenderer.sprite = eyeOpen;
@@ -51,20 +68,28 @@ public class Face_Ctrl : MonoBehaviour
         // 마이크 초기화
         if (Microphone.devices.Length > 0)
         {
-            deviceName = Microphone.devices[0];
-            micClip = Microphone.Start(deviceName, true, 1, 44100);
+            sel_mic = Microphone.devices[0];
+            micClip = Microphone.Start(sel_mic, true, 1, 44100);
             micInitialized = true;
+
+            mic_List.Clear();
+            mic_List = new List<string>(Microphone.devices);
+
+            ui_comp.Dd_MicSel.ClearOptions();
+            ui_comp.Dd_MicSel.AddOptions(new List<string>(Microphone.devices));
+            ui_comp.Dd_MicSel.value = 0;
         }
         else
         {
             Debug.LogWarning("마이크 장치를 찾을 수 없습니다.");
         }
 
-        Inf_mic_sense.text = micSensitivity.ToString();
-        Inf_threshold.text = threshold.ToString();
+        ui_comp.Inf_mic_sense.text = micSensitivity.ToString();
+        ui_comp.Inf_threshold.text = threshold.ToString();
 
-        Inf_mic_sense.onValueChanged.AddListener((value) => inp_func("sense"));
-        Inf_threshold.onValueChanged.AddListener((value) => inp_func("threshold"));
+        ui_comp.Dd_MicSel.onValueChanged.AddListener((value) => inp_func("mic"));
+        ui_comp.Inf_mic_sense.onValueChanged.AddListener((value) => inp_func("sense"));
+        ui_comp.Inf_threshold.onValueChanged.AddListener((value) => inp_func("threshold"));
     }
 
     void Update()
@@ -92,9 +117,19 @@ public class Face_Ctrl : MonoBehaviour
     void inp_func(string str)
     {
         if (str == "sense")
-        { micSensitivity = float.Parse(Inf_mic_sense.text); }
+        { 
+            micSensitivity = float.Parse(ui_comp.Inf_mic_sense.text);
+            data.Save_Data("mic_Sense", ui_comp.Inf_mic_sense.text);
+        }
         else if (str == "threshold")
-        { threshold = float.Parse(Inf_threshold.text); }
+        {
+            threshold = float.Parse(ui_comp.Inf_threshold.text);
+            data.Save_Data("mic_minsize", ui_comp.Inf_threshold.text);
+        }
+        else if (str == "mic")
+        {
+            sel_mic = mic_List[ui_comp.Dd_MicSel.value];
+        }
     }
 
     void HandleBlink()
@@ -123,7 +158,7 @@ public class Face_Ctrl : MonoBehaviour
     {
         const int sampleSize = 128;
         float[] data = new float[sampleSize];
-        int micPosition = Microphone.GetPosition(deviceName) - sampleSize + 1;
+        int micPosition = Microphone.GetPosition(sel_mic) - sampleSize + 1;
         if (micPosition < 0) return 0;
 
         micClip.GetData(data, micPosition);
