@@ -12,6 +12,9 @@ public class UI_Comp : MonoBehaviour
 
     public TMP_Dropdown Dd_MicSel;
 
+    public TMP_Dropdown Dd_Glasses;
+
+
     private void Start()
     {
         data = GetComponent<SaveData>();

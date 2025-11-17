@@ -14,6 +14,12 @@ public class Face_Ctrl : MonoBehaviour
     public SpriteRenderer eyeRenderer;
     public SpriteRenderer mouthRenderer;
 
+    [Header("Equip")]
+    [SerializeField] SpriteRenderer Glasses_renderer;
+    public List<string> GlassesTit_list;
+    public List<Sprite> GlassesSpr_list;
+
+
     [Header("Eye Sprites")]
     public Sprite eyeOpen;
     public Sprite eyeClosed;
@@ -43,7 +49,6 @@ public class Face_Ctrl : MonoBehaviour
     private bool isBlinking = false;
 
     private int loudCount = 0;           // 연속된 큰 소리 카운터
-
 
     void Start()
     {
@@ -90,6 +95,8 @@ public class Face_Ctrl : MonoBehaviour
         ui_comp.Dd_MicSel.onValueChanged.AddListener((value) => inp_func("mic"));
         ui_comp.Inf_mic_sense.onValueChanged.AddListener((value) => inp_func("sense"));
         ui_comp.Inf_threshold.onValueChanged.AddListener((value) => inp_func("threshold"));
+
+        Dd_funcInput("Glasses", ui_comp.Dd_Glasses, GlassesTit_list);
     }
 
     void Update()
@@ -111,6 +118,22 @@ public class Face_Ctrl : MonoBehaviour
                 mouthRenderer.sprite = mouthSprites[1];
             else
                 mouthRenderer.sprite = mouthSprites[0];
+        }
+    }
+
+    void Dd_funcInput(string Tit, TMP_Dropdown dd, List<string> str)
+    {
+        dd.ClearOptions();
+        dd.AddOptions(new List<string>(str));
+        dd.onValueChanged.AddListener((value) => Clothes_func(Tit));
+    }
+
+    void Clothes_func(string str)
+    {
+        if (str == "Glasses")
+        {
+            int i = ui_comp.Dd_Glasses.value;
+            Glasses_renderer.sprite = GlassesSpr_list[i];
         }
     }
 
